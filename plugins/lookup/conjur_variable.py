@@ -92,7 +92,7 @@ from ansible.plugins.lookup import LookupBase
 from base64 import b64encode
 from netrc import netrc
 from os import environ
-from time import time
+from time import time, sleep
 from ansible.module_utils.six.moves.urllib.parse import quote
 from stat import S_IRUSR, S_IWUSR
 from tempfile import gettempdir, NamedTemporaryFile
@@ -195,7 +195,14 @@ def _fetch_conjur_variable(conjur_variable, token, conjur_url, account, validate
                         method='GET',
                         validate_certs=validate_certs,
                         ca_path=cert_file)
-
+    if response.getcode() == 500: # Retry if got server error
+      sleep(10)
+      response = open_url(url,
+                          headers=headers,
+                          method='GET',
+                          validate_certs=validate_certs,
+                          ca_path=cert_file)
+    
     if response.getcode() == 200:
         display.vvvv('Conjur variable {0} was successfully retrieved'.format(conjur_variable))
         value = response.read().decode("utf-8")
